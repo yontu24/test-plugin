@@ -37,7 +37,8 @@ public plugin_end() {
 }
 
 public client_authorized(id, const authid[]) {
-	if (isUserInBlackList(id))
+	new pos = -1;
+	if (isUserInBlackList(id, pos))
 		server_cmd("kick #%d ^"You have no entry on server...^"", get_user_userid(id));
 }
 
@@ -76,7 +77,10 @@ public readPlayersFromBlacklist() {
 	fclose(file);
 }
 
-stock bool:isUserInBlackList(const id) {
+// in functie de un ID, returnam daca jucatorul se afla sau nu in lista
+// positionInArray este o variabila trimisa prin referinta,
+// adica valoarea ei se modifica in interiorul functiei, dupa apel ai acces la ea
+stock bool:isUserInBlackList(const id, &positionInArray) {
 	if (id < 1 || id > max_players) {
 		client_print(id, print_chat, "User is invalid!");
 		return false;
@@ -96,6 +100,7 @@ stock bool:isUserInBlackList(const id) {
 		// avem match?
 		if (equal(blackListData[playerName], targetName)) {
 			userisinfile = true;
+			positionInArray = i;
 			break;
 		}
 	}
@@ -124,7 +129,8 @@ public cmdSay(id) {
 		new player = find_player_ex(FindPlayer_MatchNameSubstring, targetName);
 		
 		// apelam functia nostra de verificare a jucatorului
-		if (isUserInBlackList(player)) {
+		new pos = -1; // de ignoart in acest caz, pt ca nu ne intereseaza potitia/linia in array/fisier
+		if (isUserInBlackList(player, pos)) {
 			client_print(id, print_chat, "User [%s] is already in the blacklist!", targetName);
 		} else {
 			// deschide fisierul, retine pointerul in file si insearaeza pe ultima linie
@@ -151,6 +157,22 @@ public cmdSay(id) {
 
 		// blocam executia aici (return 2 e folosit pt a nu afisa pe ecran comanda executata si celorlalti jucatori)
 		return PLUGIN_HANDLED_MAIN;
+	} else if (contain(szSaid, "/blacklistinfo") != -1) {
+		new targetName[32];
+		copy(targetName, charsmax(targetName), szSaid[15]);
+		
+		// cautam jucatorul tinta
+		new player = find_player_ex(FindPlayer_MatchNameSubstring, targetName);
+
+		new pos = -1;
+		if (isUserInBlackList(player, pos)) {
+			ArrayGetArray(blackListPlayers, pos, blackListData);
+			client_print(id, print_chat, "User [%s] has been added into blacklist by admin [%s].", blackListData[playerName], blackListData[adminName]);
+		} else {
+			// apelam din nou get_user_name pt ca, daca introduci de la tastatura cuvantul yontu iar pe server exista un jucator cu numele YONTU24, sa afisam corect numele
+			get_user_name(player, targetName, charsmax(targetName));
+			client_print(id, print_chat, "User [%s] is not part of blacklist.", targetName);
+		}
 	}
 
 	return PLUGIN_CONTINUE;
