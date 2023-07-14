@@ -3,11 +3,11 @@
 #define MAX_LINE_CHARS    128 // presupunem ca o linie are maxim 128 de caractere
 #define MAX_READ_LINES    100    // presupunem ca vom citi maxim 100 de linii
 
-new const FILE_PATH[] = "addons/amxmodx/configs/skins/skins.ini";
+new const FILE_PATH[] = "addons/amxmodx/configs/skins.ini";
 
 enum _:INFO {
     name[32],    // cam atatea caractere ar trebui sa aiba un nume
-    price[6]    // asta e un int, deci il vom citi ca si string si presupunem ca numarul maxim de $ ar fi 99999 
+    price        // asta e un int
 };
 
 new totalReadLines = 0;    // cate linii am citit
@@ -31,7 +31,7 @@ public readLinesFromFile() {
         new line[MAX_LINE_CHARS];
 
         // creez un array ce va contine doar name + price (asta va fi doar un element din array-ul lines, linia 13)
-        new lineInfo[INFO];
+        new skinName[32], skinPrice[6]; // 6 caractere pt ca vom considera ca numarul maxim ar fi de 5 cifre
         new lines[MAX_READ_LINES][INFO];
         
         while (!feof(fp)) {
@@ -42,13 +42,13 @@ public readLinesFromFile() {
                 continue;
 
             // parsam numele si pretul
-            parse(line, lineInfo[name], charsmax(lineInfo[name]), lineInfo[price], charsmax(lineInfo[price]));
+            parse(line, skinName, charsmax(skinName), skinPrice, charsmax(skinPrice));
 
             // copiez in lines (in array) cele 2 valori
-            copy(lines[totalReadLines][name], charsmax(lineInfo[name]), lineInfo[name]);
+            copy(lines[totalReadLines][name], charsmax(skinName), skinName);
 
             // inseram si pretul aici
-            lines[totalReadLines][price] = str_to_num(lineInfo[price]);
+            lines[totalReadLines][price] = str_to_num(skinPrice);
             
             // incrementam numarul de valori (name + price) in array
             totalReadLines++;
@@ -78,7 +78,9 @@ public readLinesFromFile() {
         // practic nu vom putea avea duplicate chiar daca in 
         // fisier exista mai multe linii care au acelasi nume la arma
         for (new i = 0; i < totalReadLines; i++)
-            TrieSetArray(uniqueTypes, lines[i][name], lines[i], charsmax(lines[][]), false);
+            TrieSetArray(uniqueTypes, lines[i][name], lines[i], INFO, false);
+
+        // vom folosi tagul INFO (enumeratia) ca si size pt ca in INFO avem nume (32 caractere) + 1 int (1 caracter), deci 33 caractere
     }
 }
 
@@ -93,12 +95,12 @@ public readLinesFromFile() {
  */
 public sortFunction(const elem1[], const elem2[], const array[], data[], data_size) {
     if (elem1[price] > elem2[price])
-        return 1;    // descrescator: -1
+        return -1;    // descrescator: 1
     else if (elem1[price] == elem2[price])
         return 0;
     
     // elem1 < elem2
-    return -1;      // descrescator: 1
+    return 1;      // descrescator: -1
 }
 
 /**
@@ -112,9 +114,9 @@ public cmdMenu(id) {
     new lineInfo[INFO];
     new TrieIter:iterator = TrieIterCreate(uniqueTypes);
     while (!TrieIterEnded(iterator)) {
-        TrieIterGetArray(iterator, lineInfo, charsmax(lineInfo[]));
+        TrieIterGetArray(iterator, lineInfo, INFO);
 
-        formatex(temp, charsmax(temp), "\w===> \y%s \w||\r %s EUR", lineInfo[name], lineInfo[price]);
+        formatex(temp, charsmax(temp), "\w===> \y%s \w||\r %d EUR", lineInfo[name], lineInfo[price]);
         menu_additem(menu, temp);
 
         TrieIterNext(iterator);
@@ -123,4 +125,15 @@ public cmdMenu(id) {
 
     menu_display(id, menu);
     return PLUGIN_CONTINUE;
+}
+
+
+public mainHandler(id, menu, item) {
+    if(!is_user_connected(id)) {
+        menu_destroy(menu);
+        return PLUGIN_HANDLED;
+    }
+
+    menu_destroy(menu);
+    return PLUGIN_HANDLED;
 }
