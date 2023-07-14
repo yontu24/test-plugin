@@ -117,7 +117,7 @@ public cmdMenu(id) {
         TrieIterGetArray(iterator, lineInfo, INFO);
 
         formatex(temp, charsmax(temp), "\w===> \y%s \w||\r %d EUR", lineInfo[name], lineInfo[price]);
-        menu_additem(menu, temp);
+        menu_additem(menu, temp, lineInfo[name]);	// stocam cheia in item ca sa putem accesa array-ul in callback-ul meniului
 
         TrieIterNext(iterator);
     }
@@ -133,6 +133,16 @@ public mainHandler(id, menu, item) {
         menu_destroy(menu);
         return PLUGIN_HANDLED;
     }
+
+    // extragem cheia ca sa putem accesa array-ul din Trie
+    new skinInfo[INFO];
+    menu_item_getinfo(menu, item, _, skinInfo[name], charsmax(skinInfo[name]));
+
+    // putem sa folosim aceeasi variabila ca si valoare la cheie, 
+    // astfel skinInfo va fi outputul unde retinem array-ul valoare
+    TrieGetArray(uniqueTypes, skinInfo[name], skinInfo, INFO);
+
+    client_print_color(id, print_team_default, "^4[SKINS]^1 Ai selectat arma^3 %s^1 care costa^4 %d$^1.", skinInfo[name], skinInfo[price]);
 
     menu_destroy(menu);
     return PLUGIN_HANDLED;
